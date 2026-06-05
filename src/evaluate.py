@@ -23,12 +23,12 @@ log = get_logger(__name__)
 
 
 @torch.no_grad()
-def collect_predictions(model: nn.Module, loader: DataLoader, device: torch.device, predict_fn):
+def collect_predictions(model: nn.Module, loader: DataLoader, device: torch.device, predict_fn, gpu_transform):
     model.eval()
     predictions, targets = [], []
 
     for images, batch_targets in tqdm(loader, desc="evaluate"):
-        logits = model(images.to(device))
+        logits = model(gpu_transform(images.to(device)))
         predictions.append(predict_fn(logits).cpu())
         targets.append(batch_targets)
 

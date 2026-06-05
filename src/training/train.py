@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from src.data.dataset import BCSDataset
-from src.data.transforms import build_train_transforms, build_eval_transforms
+from src.data.transforms import build_cpu_transform, build_gpu_transform
 from src.models.model import build_model, build_predictor
 from src.losses import build_loss
 from src.evaluate import plot_training_curves
@@ -61,12 +61,12 @@ def _train_worker(rank: int, world_size: int, config: dict):
     class_values = config["class_values"]
     image_size = config["img_size"]
 
-    train_loader = _build_loader(
-        "train", build_train_transforms(image_size), config, distributed, train=True
-    )
-    val_loader = _build_loader(
-        "val", build_eval_transforms(image_size), config, distributed, train=False
-    )
+    cpu_transform = build_cpu_transform(image_size)
+    train_gpu_transform = build_gpu_transform(image_size, train=True)
+    eval_gpu_transform = build_gpu_transform(image_size, train=False)
+
+    train_loader = _build_loader("train", cpu_transform, config, distributed, train=True)
+    val_loader = _build_loader("val", cpu_transform, config, distributed, train=False)
 
     model = build_model(config).to(device)
     if distributed:
@@ -102,10 +102,12 @@ def _train_worker(rank: int, world_size: int, config: dict):
             train_loader.sampler.set_epoch(epoch)
 
         train_metrics = train_one_epoch(
-            model, train_loader, loss_fn, optimizer, device, class_values, epoch, predict_fn
+            model, train_loader, loss_fn, optimizer, device, class_values, epoch,
+            predict_fn, train_gpu_transform
         )
         val_metrics = validate(
-            model, val_loader, loss_fn, device, class_values, epoch, predict_fn
+            model, val_loader, loss_fn, device, class_values, epoch,
+            predict_fn, eval_gpu_transform
         )
         scheduler.step()
 

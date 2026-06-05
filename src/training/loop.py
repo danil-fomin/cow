@@ -30,6 +30,7 @@ def train_one_epoch(
     class_values: list,
     epoch: int,
     predict_fn,
+    gpu_transform,
 ) -> dict:
     model.train()
     total_loss = torch.zeros((), device=device)
@@ -37,7 +38,7 @@ def train_one_epoch(
 
     progress = tqdm(loader, desc=f"train [{epoch}]", disable=not is_main_process())
     for batch_index, (images, batch_targets) in enumerate(progress):
-        images = images.to(device, non_blocking=True)
+        images = gpu_transform(images.to(device, non_blocking=True))
         batch_targets = batch_targets.to(device, non_blocking=True)
 
         optimizer.zero_grad()
@@ -65,6 +66,7 @@ def validate(
     class_values: list,
     epoch: int,
     predict_fn,
+    gpu_transform,
 ) -> dict:
     model.eval()
     total_loss = torch.zeros((), device=device)
@@ -72,7 +74,7 @@ def validate(
 
     progress = tqdm(loader, desc=f"val   [{epoch}]", disable=not is_main_process())
     for batch_index, (images, batch_targets) in enumerate(progress):
-        images = images.to(device, non_blocking=True)
+        images = gpu_transform(images.to(device, non_blocking=True))
         batch_targets = batch_targets.to(device, non_blocking=True)
 
         logits = model(images)
