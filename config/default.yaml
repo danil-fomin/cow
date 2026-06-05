@@ -1,0 +1,15 @@
+learn_rate: 1e-4         
+weight_decay: 1e-4       
+early_stopping_patience: 5  
+batch_size: 128
+epochs: 50
+img_size: 224
+label_smoothing: 0.1
+head: corn  # corn / classification                 
+num_workers: 2
+num_gpus: 2 
+splits:
+  train: 0.7
+  val: 0.2
+  test: 0.1
+class_values: [3.25, 3.5, 3.75, 4.0, 4.25]
