@@ -33,13 +33,19 @@ def _build_loader(split: str, transforms, config: dict, distributed: bool, train
     dataset = BCSDataset(split, transforms=transforms)
     sampler = DistributedSampler(dataset, shuffle=train) if distributed else None
 
-    return DataLoader(
-        dataset,
-        batch_size=config["batch_size"],
-        shuffle=train and sampler is None,
-        sampler=sampler,
-        num_workers=config["num_workers"],
-    )
+    num_workers = config["num_workers"]
+    loader_kwargs = {
+        "batch_size": config["batch_size"],
+        "shuffle": train and sampler is None,
+        "sampler": sampler,
+        "num_workers": num_workers,
+        "pin_memory": True,
+    }
+    if num_workers > 0:
+        loader_kwargs["persistent_workers"] = True
+        loader_kwargs["prefetch_factor"] = 4
+
+    return DataLoader(dataset, **loader_kwargs)
 
 
 def _train_worker(rank: int, world_size: int, config: dict):
