@@ -7,7 +7,7 @@ from sklearn.metrics import (
     recall_score,
 )
 
-ADJACENT_THRESHOLDS = (1, 2)
+ADJACENT_THRESHOLDS = (0.25, 0.5)
 _FP_SLACK = 1e-9
 
 
