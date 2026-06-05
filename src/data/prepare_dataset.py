@@ -80,5 +80,5 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
 
     splits = config.get("splits")
-    samples = extract_samples(Path("dataset/knee-osteoarthritis-dataset-with-severity"))
+    samples = extract_samples(Path("dataset/dataset"))
     build_dataset(samples, splits, config["class_values"])
