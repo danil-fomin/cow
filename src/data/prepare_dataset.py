@@ -7,12 +7,13 @@ import yaml
 def extract_samples(input_dir: Path) -> list[tuple[Path, str]]:
     samples = []
 
+    valid_extensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
     for directories in input_dir.iterdir():
-        for directory in directories.iterdir():
-            label = directory.name
+        label = directories.name
 
-            for image_path in directory.iterdir():
-                samples.append((image_path, label))
+        for file_path in directories.iterdir():
+            if file_path.suffix.lower() in valid_extensions:
+                samples.append((file_path, label))
 
     return samples
 
@@ -67,7 +68,7 @@ def _place_file(file: Path, class_idx: int, split: str, index: int, output_dir: 
     images_dir.mkdir(parents=True, exist_ok=True)
     labels_dir.mkdir(parents=True, exist_ok=True)
 
-    image_path = images_dir / f"{index}.png"
+    image_path = images_dir / f"{index}.jpg"
     label_path = labels_dir / f"{index}.txt"
 
     shutil.copy(file, image_path)
