@@ -87,11 +87,12 @@ def build_detection_dataset(
     source_dir: Path,
     splits: dict,
     class_values: list,
-    output_dir: Path = Path("dataset"),
+    output_dir: Path,
     seed: int = 42,
 ):
     source_dir = Path(source_dir)
     output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     sorted_values = sorted(class_values)
 
     pairs = []
@@ -133,8 +134,13 @@ def build_detection_dataset(
 if __name__ == "__main__":
     with open("config/default.yaml") as f:
         config = yaml.safe_load(f)
+
     data_path, counts = build_detection_dataset(
-        Path(config["det_source"]), config["splits"], config["class_values"], Path(config["det_data_dir"])
+        source_dir=config["source"],
+        splits=config["splits"],
+        class_values=config["class_values"],
+        output_dir=config["data_dir"],
+        seed=config.get("seed", 42),
     )
     print(f"data.yaml: {data_path}")
     print(counts)
