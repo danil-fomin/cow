@@ -12,7 +12,7 @@ class FeatureExtractor(nn.Module):
         # self.features = backbone.features
         # self.feature_channels = backbone.classifier[1].in_features
 
-        yolo = YOLO("yolo26n-cls.pt")
+        yolo = YOLO("yolo26x-cls.pt")
         seq = yolo.model.model          
         self.features = seq[:-1]      
 
