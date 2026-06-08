@@ -10,7 +10,6 @@ from sklearn.metrics import (
 ADJACENT_THRESHOLDS = (0.25, 0.5)
 _FP_SLACK = 1e-9
 
-
 def _to_numpy(values) -> np.ndarray:
     if hasattr(values, "detach"):
         values = values.detach().cpu().numpy()

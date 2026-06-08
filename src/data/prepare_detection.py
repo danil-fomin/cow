@@ -9,7 +9,6 @@ IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
 
 def parse_voc(xml_path: Path):
-    """Return (width, height, [(class_name, (xmin, ymin, xmax, ymax)), ...])."""
     root = ElementTree.parse(xml_path).getroot()
     size = root.find("size")
     width = int(size.findtext("width"))
@@ -24,6 +23,7 @@ def parse_voc(xml_path: Path):
         xmax = float(box.findtext("xmax"))
         ymax = float(box.findtext("ymax"))
         objects.append((name, (xmin, ymin, xmax, ymax)))
+
     return width, height, objects
 
 
@@ -39,7 +39,6 @@ def _name_to_index(name: str, sorted_values: list) -> int | None:
 
 
 def voc_to_yolo_lines(objects, width: int, height: int, sorted_values: list) -> list[str]:
-    """Convert VOC objects to YOLO detection lines: ``idx cx cy w h`` (normalized)."""
     lines = []
     for name, (xmin, ymin, xmax, ymax) in objects:
         index = _name_to_index(name, sorted_values)
@@ -88,11 +87,9 @@ def build_detection_dataset(
     source_dir: Path,
     splits: dict,
     class_values: list,
-    output_dir: Path = Path("dataset_det"),
+    output_dir: Path = Path("dataset"),
     seed: int = 42,
 ):
-    """Convert a directory of (image + Pascal VOC xml) pairs into the Ultralytics
-    detection layout and write ``data.yaml``. Returns (data_yaml_path, counts)."""
     source_dir = Path(source_dir)
     output_dir = Path(output_dir)
     sorted_values = sorted(class_values)

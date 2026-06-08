@@ -1,27 +1,19 @@
-task: detect             # classify | detect
+model: yolo26n.pt        
+source: dataset/dataset     
+data_dir: dataset    
 
-model: yolo26n-cls.pt    # classification weights
-det_model: yolo26n.pt    # detection weights
-
-data_dir: dataset_cls    # classification dataset (Ultralytics classify layout)
-det_data_dir: dataset_det  # detection dataset (Ultralytics detect layout)
-det_source: dataset/raw  # source images + Pascal VOC xml pairs
-
-img_size: 224            # classification image size
-det_img_size: 640        # detection image size
-
+img_size: 640
 epochs: 50
 batch_size: 128
 learn_rate: 1e-4
 weight_decay: 1e-4
 early_stopping_patience: 5
-label_smoothing: 0.1
 num_gpus: 2
 seed: 42
 
-project: null            # run dir; defaults to runs/{detect,classify} by task
+project: runs/detect
 name: bcs
-weights: null            # optional explicit weights path for evaluate/predict
+weights: null            
 
 splits:
   train: 0.7
