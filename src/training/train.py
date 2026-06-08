@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import torch
 from ultralytics import YOLO
 
@@ -14,6 +16,12 @@ def device_arg(num_gpus: int):
     return ",".join(str(i) for i in range(num_gpus))
 
 
+def default_project(config: dict) -> str:
+    if config.get("project"):
+        return config["project"]
+    return "runs/detect" if config.get("task") == "detect" else "runs/classify"
+
+
 def build_train_kwargs(config: dict) -> dict:
     return {
         "data": config["data_dir"],
@@ -26,13 +34,34 @@ def build_train_kwargs(config: dict) -> dict:
         "label_smoothing": config.get("label_smoothing", 0.0),
         "device": device_arg(config["num_gpus"]),
         "seed": config.get("seed", 42),
-        "project": config.get("project", "runs/classify"),
-        "name": config.get("name", "train"),
+        "project": default_project(config),
+        "name": config.get("name", "bcs"),
+    }
+
+
+def build_detect_train_kwargs(config: dict) -> dict:
+    return {
+        "data": str(Path(config["det_data_dir"]) / "data.yaml"),
+        "epochs": config["epochs"],
+        "imgsz": config.get("det_img_size", 640),
+        "batch": config["batch_size"],
+        "lr0": float(config["learn_rate"]),
+        "weight_decay": float(config["weight_decay"]),
+        "patience": config["early_stopping_patience"],
+        "device": device_arg(config["num_gpus"]),
+        "seed": config.get("seed", 42),
+        "project": default_project(config),
+        "name": config.get("name", "bcs"),
     }
 
 
 def run_train(config: dict):
-    model = YOLO(config["model"])
-    results = model.train(**build_train_kwargs(config))
+    if config.get("task") == "detect":
+        model = YOLO(config["det_model"])
+        results = model.train(**build_detect_train_kwargs(config))
+    else:
+        model = YOLO(config["model"])
+        results = model.train(**build_train_kwargs(config))
+
     log.info("training complete; best weights: %s", model.trainer.best)
     return results
