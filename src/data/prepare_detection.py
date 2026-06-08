@@ -7,7 +7,6 @@ import yaml
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
-
 def parse_voc(xml_path: Path):
     root = ElementTree.parse(xml_path).getroot()
     size = root.find("size")
@@ -52,9 +51,9 @@ def voc_to_yolo_lines(objects, width: int, height: int, sorted_values: list) -> 
     return lines
 
 
-def _find_image(xml_path: Path, source_dir: Path) -> Path | None:
+def _find_image(xml_path: Path) -> Path | None:
     for extension in IMAGE_EXTENSIONS:
-        candidate = source_dir / f"{xml_path.stem}{extension}"
+        candidate = xml_path.with_suffix(extension)
         if candidate.exists():
             return candidate
     return None
@@ -96,8 +95,8 @@ def build_detection_dataset(
     sorted_values = sorted(class_values)
 
     pairs = []
-    for xml_path in sorted(source_dir.glob("*.xml")):
-        image_path = _find_image(xml_path, source_dir)
+    for xml_path in sorted(source_dir.rglob("*.xml")):
+        image_path = _find_image(xml_path)
         if image_path is not None:
             pairs.append((image_path, xml_path))
 
