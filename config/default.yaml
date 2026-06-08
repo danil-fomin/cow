@@ -1,4 +1,4 @@
-learn_rate: 1e-3         
+learn_rate: 1e-4         
 weight_decay: 1e-4       
 early_stopping_patience: 5  
 batch_size: 128
