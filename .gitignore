@@ -1,1 +1,7 @@
-/outputs
+__pycache__/
+*.pyc
+*.pt
+runs/
+dataset/
+dataset_cls/
+outputs/

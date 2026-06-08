@@ -1,46 +1,20 @@
 from pathlib import Path
 
-import torch
-from torch import nn
-from PIL import Image
+VALID_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
 
 
-@torch.no_grad()
-def predict_image(
-    model: nn.Module,
-    image_path: Path,
-    transforms,
-    class_values: list,
-    device: torch.device,
-    predict_fn,
-    gpu_transform,
-):
-    model.eval()
-
-    image = Image.open(image_path).convert("RGB")
-    tensor = transforms(image).unsqueeze(0).to(device)
-    tensor = gpu_transform(tensor)
-
-    logits = model(tensor)
-    index = predict_fn(logits).item()
-
-    return index, class_values[index]
+def gather_images(path) -> list[Path]:
+    path = Path(path)
+    if path.is_dir():
+        return sorted(p for p in path.iterdir() if p.suffix.lower() in VALID_EXTENSIONS)
+    return [path]
 
 
-def predict_folder(
-    model: nn.Module,
-    folder: Path,
-    transforms,
-    class_values: list,
-    device: torch.device,
-    predict_fn,
-    gpu_transform,
-):
+def predict_paths(model, paths: list[Path], index_to_value: dict):
+    """Return list of (path, class_index, bcs_value) for each image."""
     results = []
-    for image_path in sorted(Path(folder).glob("*.jpg")):
-        index, value = predict_image(
-            model, image_path, transforms, class_values, device, predict_fn, gpu_transform
-        )
-        results.append((image_path, index, value))
-
+    predictions = model.predict([str(p) for p in paths], verbose=False)
+    for path, result in zip(paths, predictions):
+        index = int(result.probs.top1)
+        results.append((path, index, index_to_value[index]))
     return results

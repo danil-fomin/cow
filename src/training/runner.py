@@ -1,54 +1,50 @@
 from pathlib import Path
 
-from src.data.transforms import build_cpu_transform, build_gpu_transform
-from src.models.model import build_model, build_predictor
-from src.evaluate import collect_predictions, evaluate_predictions
-from src.predict import predict_image, predict_folder
-from src.training.train import _build_loader, BEST_CHECKPOINT_PATH
+from ultralytics import YOLO
+
+from src.data.labels import class_index_to_value, resolve_value
+from src.evaluate import evaluate_predictions
+from src.predict import gather_images, predict_paths
 from src.logging_setup import get_logger
-from src.utils import get_device, load_checkpoint
 
 log = get_logger(__name__)
 
 
+def _weights(config: dict) -> str:
+    if config.get("weights"):
+        return config["weights"]
+    project = config.get("project", "runs/classify")
+    name = config.get("name", "train")
+    return str(Path(project) / name / "weights" / "best.pt")
+
+
 def run_evaluate(config: dict):
-    device = get_device()
-    image_size = config["img_size"]
+    model = YOLO(_weights(config))
+    data_dir = Path(config["data_dir"])
+    class_values = sorted(config["class_values"])
 
-    cpu_transform = build_cpu_transform(image_size)
-    eval_gpu_transform = build_gpu_transform(image_size, train=False)
-    test_loader = _build_loader(
-        "test", cpu_transform, config, distributed=False, train=False
-    )
+    index_to_value = class_index_to_value(model.names, class_values)
+    value_to_rank = {value: rank for rank, value in enumerate(class_values)}
 
-    model = build_model(config).to(device)
-    load_checkpoint(model, BEST_CHECKPOINT_PATH, device)
+    test_dir = data_dir / "test"
+    image_paths, target_ranks = [], []
+    for class_dir in sorted(p for p in test_dir.iterdir() if p.is_dir()):
+        value = resolve_value(class_dir.name, class_values)
+        for image_path in sorted(class_dir.iterdir()):
+            image_paths.append(image_path)
+            target_ranks.append(value_to_rank[value])
 
-    predict_fn = build_predictor(config)
-    predictions, targets = collect_predictions(model, test_loader, device, predict_fn, eval_gpu_transform)
-    evaluate_predictions(predictions, targets, config["class_values"])
+    predictions = model.predict([str(p) for p in image_paths], verbose=False)
+    pred_ranks = [value_to_rank[index_to_value[int(r.probs.top1)]] for r in predictions]
+
+    evaluate_predictions(pred_ranks, target_ranks, class_values)
 
 
 def run_predict(config: dict, input_path: str):
-    device = get_device()
-    cpu_transform = build_cpu_transform(config["img_size"])
-    eval_gpu_transform = build_gpu_transform(config["img_size"], train=False)
-    class_values = config["class_values"]
+    model = YOLO(_weights(config))
+    class_values = sorted(config["class_values"])
+    index_to_value = class_index_to_value(model.names, class_values)
 
-    model = build_model(config).to(device)
-    load_checkpoint(model, BEST_CHECKPOINT_PATH, device)
-    predict_fn = build_predictor(config)
-
-    input_path = Path(input_path)
-    if input_path.is_dir():
-        results = predict_folder(
-            model, input_path, cpu_transform, class_values, device, predict_fn, eval_gpu_transform
-        )
-    else:
-        index, value = predict_image(
-            model, input_path, cpu_transform, class_values, device, predict_fn, eval_gpu_transform
-        )
-        results = [(input_path, index, value)]
-
-    for path, index, value in results:
+    paths = gather_images(input_path)
+    for path, index, value in predict_paths(model, paths, index_to_value):
         log.info("%s: class=%s value=%s", path, index, value)
