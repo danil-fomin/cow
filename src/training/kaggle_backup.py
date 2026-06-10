@@ -45,7 +45,11 @@ class _BackupWatcher:
         self.stage_dir = Path(stage_dir)
         self.stage_dir.mkdir(parents=True, exist_ok=True)
         (self.stage_dir / "dataset-metadata.json").write_text(
-            json.dumps({"id": dataset_slug, "title": title})
+            json.dumps({
+                "id": dataset_slug,
+                "title": title,
+                "licenses": [{"name": "CC0-1.0"}],  # required by `kaggle datasets create`
+            })
         )
         self.exists = exists
         self.interval = interval
