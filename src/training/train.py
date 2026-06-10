@@ -17,8 +17,9 @@ def device_arg(num_gpus: int):
 
 
 def build_train_kwargs(config: dict) -> dict:
+    project = Path(config.get("project", "runs/detect")).resolve()
     return {
-        "data": str(Path(config["data_dir"]) / "data.yaml"),
+        "data": str((Path(config["data_dir"]) / "data.yaml").resolve()),
         "epochs": config["epochs"],
         "imgsz": config["img_size"],
         "batch": config["batch_size"],
@@ -27,13 +28,27 @@ def build_train_kwargs(config: dict) -> dict:
         "patience": config["early_stopping_patience"],
         "device": device_arg(config["num_gpus"]),
         "seed": config.get("seed", 42),
-        "project": config.get("project", "runs/detect"),
+        "project": str(project),
         "name": config.get("name", "bcs"),
+        "exist_ok": True,
     }
 
 
-def run_train(config: dict):
-    model = YOLO(config["model"])
-    results = model.train(**build_train_kwargs(config))
+def run_train(config: dict, on_model_save=None):
+    kwargs = build_train_kwargs(config)
+    last = Path(kwargs["project"]) / kwargs["name"] / "weights" / "last.pt"
+
+    if last.exists():
+        log.info("resuming from %s", last)
+        model = YOLO(str(last))
+        train_kwargs = {"resume": True}
+    else:
+        model = YOLO(config["model"])
+        train_kwargs = kwargs
+
+    if on_model_save is not None:
+        model.add_callback("on_model_save", on_model_save)
+
+    results = model.train(**train_kwargs)
     log.info("training complete; best weights: %s", model.trainer.best)
     return results
